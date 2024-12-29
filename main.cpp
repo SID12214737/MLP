@@ -1,74 +1,140 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <numeric>
+#include <cstdlib> // for rand()
 
 using namespace std;
 
-double logistic(double x){
+// Activation Functions
+double logistic(double x) {
     return 1 / (1 + exp(-x));
 }
 
-double relu(double x){
-    return x > 0 ? x: 0;
+double relu(double x) {
+    return x > 0 ? x : 0;
 }
 
-double random_value(){
-    return 1 + ((double)rand() / RAND_MAX) * 2;
+// Generate a random double values
+double random_value() {
+    return ((double)rand() / RAND_MAX) * 2.0 - 1.0; // Scale to [-1, 1]
 }
 
-struct Neuron{
+
+// Softmax Function (without std::max_element)
+vector<double> softmax(const vector<double>& input) {
+    // Step 1: Find the maximum value manually
+    double max_val = input[0];
+    for (double val : input) {
+        if (val > max_val) max_val = val;
+    }
+
+    // Step 2: Compute the exponentials adjusted by max_val
+    vector<double> exp_values(input.size());
+    for (size_t i = 0; i < input.size(); ++i) {
+        exp_values[i] = exp(input[i] - max_val);
+    }
+
+    // Step 3: Compute the sum of exponentials
+    double sum_exp = 0.0;
+    for (double val : exp_values) {
+        sum_exp += val;
+    }
+
+    // Step 4: Normalize the exponentials
+    for (double& val : exp_values) {
+        val /= sum_exp;
+    }
+
+    return exp_values;
+}
+
+// Neuron
+struct Neuron {
     vector<double> weights;
     double threshold = 0.0;
-    int activation = 0; // 0->Sigmoid, 1->ReLU
-    
-    Neuron(int activation = 0, int n_neurons){
-        activation = activation;
-        for (int i = 0; i < n_neurons; i++){
-            weights.push_back(random_value());    
+    int activation_type = 0; // 0->Logistic, 1->ReLU, 2->Linear
+
+    Neuron(int activation = 0, int n_outs = 1) : activation_type(activation) {
+        for (int i = 0; i < n_outs; i++) {
+            weights.push_back(random_value());
         }
     }
 
-    double transfer(vector<double> inputs){
+    double transfer(const vector<double>& inputs) {
         double sum = 0.0;
-        for (int i=0; i<inputs.size(); i++){
-            sum += inputs[i];
+        for (size_t i = 0; i < inputs.size(); ++i) {
+            sum += inputs[i] * weights[i];
         }
-        return sum;
+        return sum - threshold;
     }
 
-    double activate(vector<double> inputs){
+    double activate(const vector<double>& inputs) {
         double neuron = transfer(inputs);
-        if (activation){
-            return logistic(neuron);
-        } else {
-            return relu(neuron);
+
+        switch (activation_type) {
+            case 0: return logistic(neuron);
+            case 1: return relu(neuron);
+            case 2: return neuron;
+            default: return neuron;
         }
     }
 };
 
-struct Layer{
+// Layer
+struct Layer {
     vector<Neuron> neurons;
 
-    Layer(int NoN, int n_neurons, int activaton = 0){
-        for (int i = 0; i < NoN; i++){
-            neurons.push_back(Neuron(activaton=activaton, n_neurons=n_neurons));
+    Layer(int num_neurons, int n_outs, int activation = 0) {
+        for (int i = 0; i < num_neurons; ++i) {
+            neurons.emplace_back(activation, n_outs);
         }
     }
-    
-};
 
-struct NeuralNetwork{
-    vector<Layer> hidden_layers;
-
-    NeuralNetwork(vector<int> schematics){
-        for (int i = 1; i < schematics.size()-1; i++){
-            
+    vector<double> forward(const vector<double>& inputs) {
+        vector<double> outputs;
+        for (auto& neuron : neurons) {
+            outputs.push_back(neuron.activate(inputs));
         }
+        return outputs;
     }
 };
 
-int main(){
+// Neural Network
+struct NeuralNetwork {
+    vector<Layer> layers; // Layers in the network
+
+    NeuralNetwork(const vector<int>& schematics) {
+        for (size_t i = 0; i < schematics.size() - 1; ++i) {
+            layers.emplace_back(schematics[i], schematics[i + 1], 1);
+        }
+    }
+
+    vector<double> forward(vector<double> inputs) {
+        for (auto& layer : layers) {
+            inputs = layer.forward(inputs);
+        }
+        return inputs;
+    }
+};
+
+int main() {
+    srand(time(0)); // Seed random number generator
+
+    // Define network with 2 inputs, 1 hidden layer (3 neurons), and 2 outputs
     vector<int> schematics{2, 3, 2};
+    NeuralNetwork nn(schematics);
+
+    // Example input
+    vector<double> input = {0.5, 1.2};
+    vector<double> output = nn.forward(input);
+
+    // Display output
+    cout << "Network output: ";
+    for (double val : output) {
+        cout << val << " ";
+    }
+    cout << endl;
 
     return 0;
 }

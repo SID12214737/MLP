@@ -53,8 +53,8 @@ struct Neuron {
     double threshold = 0.0; // i still don't know how to use it so it's 0.0 for now
     int activation_type = 0; // 0->Logistic, 1->ReLU, 2->Linear
 
-    Neuron(int activation = 0, int n_outs = 1) : activation_type(activation) {
-        for (int i = 0; i < n_outs; i++) {
+    Neuron(int activation = 0, int n_ins = 1) : activation_type(activation) {
+        for (int i = 0; i < n_ins; i++) {
             weights.push_back(random_value());
         }
     }
@@ -62,7 +62,7 @@ struct Neuron {
     double transfer(const vector<double>& inputs) {
         double sum = 0.0;
         for (size_t i = 0; i < inputs.size(); ++i) {
-            sum += inputs[i];
+            sum += inputs[i] * weights[i];
         }
         return sum;
     }
@@ -78,15 +78,8 @@ struct Neuron {
         }
     }
 
-    vector<double> forward(const vector<double>& inputs) {
-        vector<double> outputs;
-        double active = activate(inputs);
-        size_t weights_size = weights.size();
-        
-        for (int i = 0; i<weights_size; i++) {
-            outputs.push_back(active * weights[i]);
-        }
-
+    double forward(const vector<double>& inputs) {
+        double outputs = activate(inputs);
         return outputs;
     }
 };
@@ -95,20 +88,20 @@ struct Neuron {
 struct Layer {
     vector<Neuron> neurons;
 
-    Layer(const int num_neurons,const int n_outs, const int activation = 0) {
+    Layer(const int num_neurons,const int n_ins, const int activation = 0) {
         for (int i = 0; i < num_neurons; ++i) {
-            neurons.emplace_back(activation, n_outs);
+            neurons.emplace_back(activation, n_ins);
         }
 
     }
     
-    vector<vector<double>> forward(const vector<vector<double>>& inputs) {
+    vector<double> forward(const vector<double>& inputs) {
         
-        vector<vector<double>> outputs; // For next layer
+        vector<double> outputs; // For next layer
         size_t neurons_size = neurons.size();
 
         for (size_t i = 0; i < neurons_size; i++) {
-            outputs.push_back(neurons[i].forward(inputs[i]));    
+            outputs.push_back(neurons[i].forward(inputs));    
         }
 
         return outputs; // These will serve as inputs for the next layer
@@ -127,7 +120,7 @@ struct NeuralNetwork {
         layers.emplace_back(schematics.back(), schematics.back(), 2);
     }
 
-    vector<vector<double>> forward(vector<vector<double>>& inputs) {
+    vector<double> forward(vector<double>& inputs) {
         for (auto& layer : layers) {
             inputs = layer.forward(inputs);
         }
@@ -139,18 +132,18 @@ int main() {
     srand(time(0)); // Seed random number generator
 
     // Define network with 2 inputs, 1 hidden layer (3 neurons), and 2 outputs
-    vector<int> schematics{2, 3, 2};
+    vector<int> schematics{2, 5, 5, 4};
     NeuralNetwork nn(schematics);
 
     // Example input
-    vector<vector<double>> input = {{0.5}, {1.2}};
-    vector<vector<double>> output = nn.forward(input);
+    vector<double> input = {0.5, 1.2};
+    vector<double> output = nn.forward(input);
 
     // Display output
     cout << "Network output: ";
-    for (int i = 0; i < schematics.back(); i++){
-        cout << output[i][0];
-    }
+    for (auto& out: output){
+        cout << out << " ";
+    };
     cout << endl;
 
     return 0;

@@ -132,7 +132,7 @@ int main() {
     srand(time(0)); // Seed random number generator
 
     // Define network with 2 inputs, 1 hidden layer (3 neurons), and 2 outputs
-    vector<int> schematics{2, 5, 5, 4};
+    vector<int> schematics{2, 4, 2};
     NeuralNetwork nn(schematics);
 
     // Example input

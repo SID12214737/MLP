@@ -1,8 +1,6 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
-#include <numeric>
-#include <cstdlib> 
 
 using namespace std;
 

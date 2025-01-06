@@ -4,13 +4,21 @@
 
 using namespace std;
 
-// Activation Functions
 double logistic(double x) {
     return 1 / (1 + exp(-x));
 }
 
+double logistic_derivative(double x) {
+    double s = logistic(x);
+    return s * (1 - s);
+}
+
 double relu(double x) {
     return x > 0 ? x : 0;
+}
+
+double reluDerivative(double x) {
+    return x > 0 ? 1 : 0;
 }
 
 // Generate a random double values
@@ -19,7 +27,7 @@ double random_value() {
 }
 
 
-// Softmax Function (without std::max_element)
+// Softmax Function
 vector<double> softmax(const vector<double>& input) {
     // Step 1: Find the maximum value manually
     double max_val = input[0];
@@ -47,9 +55,27 @@ vector<double> softmax(const vector<double>& input) {
     return exp_values;
 }
 
+vector<vector<double>> softmaxDerivative(const vector<double>& softmaxOutput) {
+    size_t n = softmaxOutput.size();
+    vector<vector<double>> jacobianMatrix(n, vector<double>(n));
+
+    for (size_t i = 0; i < n; ++i) {
+        for (size_t j = 0; j < n; ++j) {
+            if (i == j) {
+                jacobianMatrix[i][j] = softmaxOutput[i] * (1 - softmaxOutput[i]);
+            } else {
+                jacobianMatrix[i][j] = -softmaxOutput[i] * softmaxOutput[j];
+            }
+        }
+    }
+
+    return jacobianMatrix;
+}
+
+
 // Neuron
 struct Neuron {
-    vector<double> weights; // for the next layer
+    vector<double> weights;
     double threshold = 0.0; // i still don't know how to use it so it's 0.0 for now
     int activation_type = 0; // 0->Logistic, 1->ReLU, 2->Linear
 
@@ -97,20 +123,20 @@ struct Layer {
     
     vector<double> forward(const vector<double>& inputs) {
         
-        vector<double> outputs; // For next layer
+        vector<double> outputs;
         size_t neurons_size = neurons.size();
 
         for (size_t i = 0; i < neurons_size; i++) {
             outputs.push_back(neurons[i].forward(inputs));    
         }
 
-        return outputs; // These will serve as inputs for the next layer
+        return outputs; 
     }
 };
 
 // Neural Network
 struct NeuralNetwork {
-    vector<Layer> layers; // Layers in the network
+    vector<Layer> layers;
 
     NeuralNetwork(const vector<int>& schematics) {
         size_t shcema_size = schematics.size();
@@ -131,7 +157,6 @@ struct NeuralNetwork {
 int main() {
     srand(time(0)); // Seed random number generator
 
-    // Define network with 2 inputs, 1 hidden layer (3 neurons), and 2 outputs
     vector<int> schematics{2, 4, 2};
     NeuralNetwork nn(schematics);
 
